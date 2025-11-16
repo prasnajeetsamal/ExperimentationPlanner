@@ -2376,17 +2376,30 @@ function TestMonitoringTab() {
         {scorecards.map((card, idx) => {
           const Icon = card.icon;
           return (
+            // <div 
+            //   key={idx} 
+            //   className={`bg-gradient-to-br ${card.gradient} rounded-2xl shadow-xl p-5 text-white border-4 ${card.border} hover:shadow-2xl transition-all cursor-pointer`}
+            // >
+            //   <div className="flex items-center gap-3 mb-3">
+            //     <div className="p-2 bg-white/20 backdrop-blur rounded-lg">
+            //       <Icon size={24} />
+            //     </div>
+            //     <span className="text-xs font-semibold opacity-90 leading-tight">{card.label}</span>
+            //   </div>
+            //   <div className="text-4xl font-bold">{card.value}</div>
+            // </div>
+
             <div 
-              key={idx} 
-              className={`bg-gradient-to-br ${card.gradient} rounded-2xl shadow-xl p-5 text-white border-4 ${card.border} hover:shadow-2xl transition-all cursor-pointer`}
+            key={idx} 
+            className={`bg-gradient-to-br ${card.gradient} rounded-2xl shadow-xl p-3 text-white border-2 ${card.border} hover:shadow-2xl transition-all cursor-pointer`}
             >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-white/20 backdrop-blur rounded-lg">
-                  <Icon size={24} />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-white/20 backdrop-blur rounded-lg">
+                  <Icon size={18} />
                 </div>
                 <span className="text-xs font-semibold opacity-90 leading-tight">{card.label}</span>
               </div>
-              <div className="text-4xl font-bold">{card.value}</div>
+              <div className="text-3xl font-bold">{card.value}</div>
             </div>
           );
         })}
@@ -2404,18 +2417,18 @@ function TestMonitoringTab() {
         {timelineData.length > 0 ? (
           <div className="relative">
             {/* Column chart */}
-            <div className="flex items-end justify-around gap-4 h-56 border-b-2 border-gray-300 pb-2 px-6 relative">
+            <div className="flex items-end justify-around gap-4 h-40 border-b-2 border-gray-300 pb-2 px-6 relative">
               {/* Bars container */}
               <div className="flex items-end justify-around gap-4 flex-1">
                 {timelineData.map(([monthYear, count], idx) => {
                   // Calculate exact pixel height based on chart area
-                  const chartHeight = 220; // h-56 = 224px minus some padding
+                  const chartHeight = 130; // h-56 = 224px minus some padding
                   const barHeight = (count / maxCount) * chartHeight;
                   
                   return (
                     <div key={monthYear} className="flex flex-col items-center flex-1 max-w-[100px]">
                       {/* Count label on top */}
-                      <div className="text-base font-bold text-gray-800 mb-2 h-6">
+                      <div className="text-sm font-bold text-gray-800 mb-1.5 h-5">
                         {count}
                       </div>
                       
@@ -2761,16 +2774,20 @@ function TestRepositoryTab() {
           return (
             <div 
               key={idx} 
-              className={`bg-gradient-to-br ${card.gradient} rounded-2xl shadow-xl p-5 text-white border-4 ${card.border} hover:shadow-2xl transition-all cursor-pointer`}
+              className={`bg-gradient-to-br ${card.gradient} rounded-2xl shadow-xl p-3 text-white border-2 ${card.border} hover:shadow-2xl transition-all cursor-pointer`}
             >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-white/20 backdrop-blur rounded-lg">
-                  <Icon size={24} />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-white/20 backdrop-blur rounded-lg">
+                  <Icon size={18} />
                 </div>
                 <span className="text-xs font-semibold opacity-90 leading-tight">{card.label}</span>
               </div>
-              <div className="text-4xl font-bold">{card.value}</div>
+              <div className="text-3xl font-bold">{card.value}</div>
             </div>
+            
+
+
+
           );
         })}
       </div>
@@ -2787,18 +2804,18 @@ function TestRepositoryTab() {
         {completedTimelineData.length > 0 ? (
           <div className="relative">
             {/* Column chart */}
-            <div className="flex items-end justify-around gap-4 h-56 border-b-2 border-gray-300 pb-2 px-6 relative">
+            <div className="flex items-end justify-around gap-4 h-40 border-b-2 border-gray-300 pb-2 px-6 relative">
               {/* Bars container */}
               <div className="flex items-end justify-around gap-4 flex-1">
                 {completedTimelineData.map(([monthYear, count], idx) => {
                   // Calculate exact pixel height based on chart area
-                  const chartHeight = 220; // h-56 = 224px minus some padding
+                  const chartHeight = 130; // h-56 = 224px minus some padding
                   const barHeight = (count / completedMaxCount) * chartHeight;
                   
                   return (
                     <div key={monthYear} className="flex flex-col items-center flex-1 max-w-[100px]">
                       {/* Count label on top */}
-                      <div className="text-base font-bold text-gray-800 mb-2 h-6">
+                      <div className="text-sm font-bold text-gray-800 mb-1.5 h-5">
                         {count}
                       </div>
                       
