@@ -2174,7 +2174,7 @@ function TestRepositoryTab({ testData }) {
       if (stage === "Completed") stats.Completed++;
       else if (stage === "Intake") stats.Intake++;
       else if (stage === "Proposal") stats.Proposal++;
-      else if (stage === "Development") stats.Development++;
+      else if (stage === "Dev") stats.Development++;
       else if (stage === "Live") stats.Live++;
       else if (stage === "Result Analysis") stats["Result Analysis"]++;
       else if (stage === "Result Implementation") stats["Result Implementation"]++;
@@ -2282,7 +2282,7 @@ function TestRepositoryTab({ testData }) {
   return (
     <div className="space-y-6">
       {/* Stats Overview */}
-      <div className="grid grid-cols-7 gap-3">
+      <div className="grid grid-cols-5 gap-3">
         {/* Large Total Card - Spans 2 columns and 2 rows */}
         <div 
           className={`col-span-2 row-span-2 bg-gradient-to-br ${scorecards.total.gradient} rounded-2xl shadow-xl p-4 text-white border-2 ${scorecards.total.border} hover:shadow-2xl transition-all cursor-pointer flex flex-col justify-center items-center`}
