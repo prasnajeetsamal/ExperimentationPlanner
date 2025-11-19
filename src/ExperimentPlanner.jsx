@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { Calculator, Users, TrendingUp, Info, CheckCircle2, XCircle, AlertTriangle, Calendar, Settings, BarChart3, BookOpen, FlaskConical, Target, LineChart, Grid3x3, Download, Search, Filter, Eye, Clock, Play, Pause, CheckSquare } from "lucide-react";
+import { Calculator, Users, TrendingUp, Info, CheckCircle2, XCircle, AlertTriangle, Calendar, Settings, BarChart3, BookOpen, FlaskConical, Target, LineChart, Grid3x3, Download, Search, Filter, Eye, Clock, Play, Pause, CheckSquare, Upload, Trash2, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 // import ResultsAnalysisTab from './ResultsAnalysisTab';
 // import ResultsAnalysisTab from './ResultsAnalysisTab_Improved';
 import ResultsAnalysisComplete from './ResultsAnalysisComplete';
+import ExperimentMonitoring from './ExperimentMonitoring';
 
 // ===== TEST DATA =====
-const TEST_DATA = [
+const INITIAL_TEST_DATA = [
   {
     "Test Launch Date": "2025-02-02",
     "Test End Date": "2025-02-24",
@@ -2230,407 +2231,18 @@ function SampleSizeTab() {
 }
 
 // ===== Test Monitoring Tab =====
-function TestMonitoringTab() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [stageFilter, setStageFilter] = useState("All");
-  const [selectedTest, setSelectedTest] = useState(null);
-
-  // Filter only non-completed tests
-  const activeTests = useMemo(() => {
-    return TEST_DATA.filter(test => test["Test Stage"] !== "Completed");
-  }, []);
-
-  const filteredTests = useMemo(() => {
-    return activeTests.filter(test => {
-      const matchesSearch = 
-        test.Summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        test.Product.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        test.Hypothesis.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStage = stageFilter === "All" || test["Test Stage"] === stageFilter;
-      
-      return matchesSearch && matchesStage;
-    });
-  }, [activeTests, searchTerm, stageFilter]);
-
-  const stageStats = useMemo(() => {
-    const stats = {
-      Total: activeTests.length,
-      Intake: 0,
-      Proposal: 0,
-      Development: 0,
-      Live: 0,
-      "Result Analysis": 0,
-      "Result Implementation": 0
-    };
-    
-    activeTests.forEach(test => {
-      const stage = test["Test Stage"];
-      if (stage === "Intake") stats.Intake++;
-      else if (stage === "Proposal") stats.Proposal++;
-      else if (stage === "Development") stats.Development++;
-      else if (stage === "Live") stats.Live++;
-      else if (stage === "Result Analysis") stats["Result Analysis"]++;
-      else if (stage === "Result Implementation") stats["Result Implementation"]++;
-    });
-    
-    return stats;
-  }, [activeTests]);
-
-  // Timeline data - group active tests by month-year
-  const timelineData = useMemo(() => {
-    const monthCounts = {};
-    
-    activeTests.forEach(test => {
-      const date = new Date(test["Test Launch Date"]);
-      const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
-      monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
-    });
-    
-    // Sort by date
-    const sorted = Object.entries(monthCounts).sort((a, b) => {
-      const dateA = new Date(a[0]);
-      const dateB = new Date(b[0]);
-      return dateA - dateB;
-    });
-    
-    return sorted;
-  }, [activeTests]);
-
-  const maxCount = Math.max(...timelineData.map(([_, count]) => count), 1);
-
-  const getStageColor = (stage) => {
-    const colors = {
-      "Live": "bg-emerald-100 text-emerald-800 border-emerald-300",
-      "Result Analysis": "bg-blue-100 text-blue-800 border-blue-300",
-      "Result Implementation": "bg-purple-100 text-purple-800 border-purple-300",
-      "Development": "bg-yellow-100 text-yellow-800 border-yellow-300",
-      "Intake": "bg-orange-100 text-orange-800 border-orange-300",
-      "Proposal": "bg-gray-100 text-gray-800 border-gray-300"
-    };
-    return colors[stage] || "bg-gray-100 text-gray-800 border-gray-300";
-  };
-
-  const getStageIcon = (stage) => {
-    const icons = {
-      "Live": Play,
-      "Result Analysis": BarChart3,
-      "Result Implementation": CheckSquare,
-      "Development": Settings,
-      "Intake": Clock,
-      "Proposal": BookOpen
-    };
-    const Icon = icons[stage] || Clock;
-    return <Icon size={16} />;
-  };
-
-  const scorecards = [
-    { 
-      label: "# A/B Tests in Intake", 
-      value: stageStats.Intake, 
-      icon: Clock, 
-      gradient: "from-orange-500 to-amber-600",
-      border: "border-orange-400"
-    },
-    { 
-      label: "# A/B Tests in Proposal", 
-      value: stageStats.Proposal, 
-      icon: BookOpen, 
-      gradient: "from-gray-500 to-slate-600",
-      border: "border-gray-400"
-    },
-    { 
-      label: "# A/B Tests in Dev", 
-      value: stageStats.Development, 
-      icon: Settings, 
-      gradient: "from-yellow-500 to-orange-600",
-      border: "border-yellow-400"
-    },
-    { 
-      label: "# Live A/B Tests", 
-      value: stageStats.Live, 
-      icon: Play, 
-      gradient: "from-blue-500 to-cyan-600",
-      border: "border-blue-400"
-    },
-    { 
-      label: "# A/B Tests in Result Analysis", 
-      value: stageStats["Result Analysis"], 
-      icon: BarChart3, 
-      gradient: "from-purple-500 to-pink-600",
-      border: "border-purple-400"
-    },
-    { 
-      label: "# A/B Tests in Implementation", 
-      value: stageStats["Result Implementation"], 
-      icon: CheckSquare, 
-      gradient: "from-indigo-500 to-blue-600",
-      border: "border-indigo-400"
-    }
-  ];
-
-  return (
-    <div className="space-y-6">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-3 gap-4">
-        {scorecards.map((card, idx) => {
-          const Icon = card.icon;
-          return (
-            // <div 
-            //   key={idx} 
-            //   className={`bg-gradient-to-br ${card.gradient} rounded-2xl shadow-xl p-5 text-white border-4 ${card.border} hover:shadow-2xl transition-all cursor-pointer`}
-            // >
-            //   <div className="flex items-center gap-3 mb-3">
-            //     <div className="p-2 bg-white/20 backdrop-blur rounded-lg">
-            //       <Icon size={24} />
-            //     </div>
-            //     <span className="text-xs font-semibold opacity-90 leading-tight">{card.label}</span>
-            //   </div>
-            //   <div className="text-4xl font-bold">{card.value}</div>
-            // </div>
-
-            <div 
-            key={idx} 
-            className={`bg-gradient-to-br ${card.gradient} rounded-2xl shadow-xl p-3 text-white border-2 ${card.border} hover:shadow-2xl transition-all cursor-pointer`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 bg-white/20 backdrop-blur rounded-lg">
-                  <Icon size={18} />
-                </div>
-                <span className="text-xs font-semibold opacity-90 leading-tight">{card.label}</span>
-              </div>
-              <div className="text-3xl font-bold">{card.value}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Timeline Chart */}
-      <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
-        <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <div className="p-2 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg">
-            <BarChart3 size={20} className="text-indigo-600" />
-          </div>
-          Active Tests Timeline (by Launch Month)
-        </h3>
-        
-        {timelineData.length > 0 ? (
-          <div className="relative">
-            {/* Column chart */}
-            <div className="flex items-end justify-around gap-4 h-40 border-b-2 border-gray-300 pb-2 px-6 relative">
-              {/* Bars container */}
-              <div className="flex items-end justify-around gap-4 flex-1">
-                {timelineData.map(([monthYear, count], idx) => {
-                  // Calculate exact pixel height based on chart area
-                  const chartHeight = 130; // h-56 = 224px minus some padding
-                  const barHeight = (count / maxCount) * chartHeight;
-                  
-                  return (
-                    <div key={monthYear} className="flex flex-col items-center flex-1 max-w-[100px]">
-                      {/* Count label on top */}
-                      <div className="text-sm font-bold text-gray-800 mb-1.5 h-5">
-                        {count}
-                      </div>
-                      
-                      {/* Bar */}
-                      <div 
-                        className="w-full bg-gradient-to-t from-indigo-600 to-purple-500 rounded-t-lg hover:from-indigo-700 hover:to-purple-600 transition-all cursor-pointer shadow-md hover:shadow-xl group relative"
-                        style={{ 
-                          height: `${barHeight}px`
-                        }}
-                      >
-                        {/* Tooltip on hover */}
-                        <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                          {monthYear}: {count} {count === 1 ? 'test' : 'tests'}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            
-            {/* X-axis labels */}
-            <div className="flex justify-around gap-4 px-6 mt-3">
-              {timelineData.map(([monthYear], idx) => (
-                <div key={idx} className="flex-1 max-w-[100px] text-center">
-                  <div className="text-xs font-semibold text-gray-700">
-                    {monthYear}
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            {/* X-axis label */}
-            <div className="text-center mt-4">
-              <span className="text-sm font-semibold text-gray-700">Launch Month</span>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            <BarChart3 size={48} className="mx-auto mb-3 text-gray-300" />
-            <p>No active tests to display</p>
-          </div>
-        )}
-      </div>
-
-      {/* Search and Filters */}
-      <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-2">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search by summary, product, or hypothesis..."
-                className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 focus:outline-none transition-all"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-          <div>
-            <div className="relative">
-              <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <select
-                className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 focus:outline-none transition-all appearance-none"
-                value={stageFilter}
-                onChange={(e) => setStageFilter(e.target.value)}
-              >
-                <option>All</option>
-                <option>Live</option>
-                <option>Result Analysis</option>
-                <option>Result Implementation</option>
-                <option>Development</option>
-                <option>Intake</option>
-                <option>Proposal</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Test Table */}
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Experiment Name</th>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Stage</th>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Launch Date</th>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">End Date</th>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Product</th>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Countries</th>
-                <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredTests.map((test, idx) => (
-                <React.Fragment key={idx}>
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-semibold text-gray-900">{test.Summary}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border-2 ${getStageColor(test["Test Stage"])} inline-block`}>
-                        {test["Test Stage"]}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{test["Test Launch Date"]}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{test["Test End Date"]}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 font-medium">{test.Product}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{test["Country or Countries"]}</td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => setSelectedTest(selectedTest === idx ? null : idx)}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-all flex items-center gap-2 mx-auto text-xs"
-                      >
-                        <Eye size={14} />
-                        {selectedTest === idx ? "Hide" : "View"} Details
-                      </button>
-                    </td>
-                  </tr>
-                  {selectedTest === idx && (
-                    <tr className="bg-gradient-to-r from-indigo-50 to-purple-50">
-                      <td colSpan="7" className="px-6 py-6">
-                        <div className="space-y-6">
-                          {/* Hypothesis Section */}
-                          <div className="bg-white rounded-xl p-5 shadow-sm border border-indigo-200">
-                            <h4 className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
-                              <Target size={16} className="text-indigo-600" />
-                              Hypothesis
-                            </h4>
-                            <p className="text-sm text-gray-700 leading-relaxed">
-                              {test.Hypothesis}
-                            </p>
-                          </div>
-
-                          {/* Metadata Grid */}
-                          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-                            <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-                              <Info size={16} className="text-gray-600" />
-                              Test Metadata
-                            </h4>
-                            <div className="grid grid-cols-3 gap-6">
-                              <div>
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Platform</span>
-                                <p className="text-sm text-gray-900 font-semibold mt-1">{test.Platform}</p>
-                              </div>
-                              <div>
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Category</span>
-                                <p className="text-sm text-gray-900 font-semibold mt-1">{test.Category}</p>
-                              </div>
-                              <div>
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">LOB(s)</span>
-                                <p className="text-sm text-gray-900 font-semibold mt-1">{test["LOB(s)"]}</p>
-                              </div>
-                              <div>
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Page Type(s)</span>
-                                <p className="text-sm text-gray-900 font-semibold mt-1">{test["Page Type(s)"]}</p>
-                              </div>
-                              <div>
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Page Section(s)</span>
-                                <p className="text-sm text-gray-900 font-semibold mt-1">{test["Page Section(s)"]}</p>
-                              </div>
-                              <div>
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Page Element(s)</span>
-                                <p className="text-sm text-gray-900 font-semibold mt-1">{test["Page Element(s)"]}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredTests.length === 0 && (
-          <div className="p-12 text-center">
-            <div className="inline-flex p-4 bg-gray-100 rounded-full mb-4">
-              <Search size={32} className="text-gray-400" />
-            </div>
-            <p className="text-gray-600 font-medium">No active experiments found matching your criteria.</p>
-            <p className="text-sm text-gray-500 mt-2">Try adjusting your search or filter settings.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+function TestMonitoringTab({ testData }) {
+  return <ExperimentMonitoring testData={testData} />;
 }
 
 // ===== Test Repository Tab =====
-function TestRepositoryTab() {
+function TestRepositoryTab({ testData }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [stageFilter, setStageFilter] = useState("All");
   const [selectedTest, setSelectedTest] = useState(null);
 
   const filteredTests = useMemo(() => {
-    return TEST_DATA.filter(test => {
+    return testData.filter(test => {
       const matchesSearch = 
         test.Summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
         test.Product.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -2644,7 +2256,7 @@ function TestRepositoryTab() {
 
   const stageStats = useMemo(() => {
     const stats = {
-      Total: TEST_DATA.length,
+      Total: testData.length,
       Completed: 0,
       Intake: 0,
       Proposal: 0,
@@ -2654,7 +2266,7 @@ function TestRepositoryTab() {
       "Result Implementation": 0
     };
     
-    TEST_DATA.forEach(test => {
+    testData.forEach(test => {
       const stage = test["Test Stage"];
       if (stage === "Completed") stats.Completed++;
       else if (stage === "Intake") stats.Intake++;
@@ -2673,7 +2285,7 @@ function TestRepositoryTab() {
     const monthCounts = {};
     
     // Filter only completed tests
-    const completedTests = TEST_DATA.filter(test => test["Test Stage"] === "Completed");
+    const completedTests = testData.filter(test => test["Test Stage"] === "Completed");
     
     completedTests.forEach(test => {
       const date = new Date(test["Test End Date"]);
@@ -3042,15 +2654,334 @@ function PlaceholderTab({ title, description, icon: Icon }) {
   );
 }
 
+// ===== ADMIN TAB COMPONENT =====
+function AdminTab({ testData, setTestData }) {
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [previewData, setPreviewData] = useState(null);
+
+  // Handle Excel file upload
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        // Validate required columns
+        const requiredColumns = [
+          "Test Launch Date", "Test End Date", "Test Stage", "Summary",
+          "Platform", "Category", "LOB(s)", "Country or Countries",
+          "Page Type(s)", "Page Section(s)", "Page Element(s)", "Product",
+          "Hypothesis", "Optimization Result"
+        ];
+
+        if (jsonData.length > 0) {
+          const columns = Object.keys(jsonData[0]);
+          const missingColumns = requiredColumns.filter(col => !columns.includes(col));
+          
+          if (missingColumns.length > 0) {
+            setUploadStatus(`Error: Missing columns: ${missingColumns.join(", ")}`);
+            return;
+          }
+
+          setPreviewData(jsonData);
+          setUploadStatus(`Preview: ${jsonData.length} experiments loaded. Review and confirm to import.`);
+        }
+      } catch (error) {
+        setUploadStatus(`Error: ${error.message}`);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const confirmImport = () => {
+    if (previewData) {
+      setTestData(previewData);
+      setUploadStatus(`Success: ${previewData.length} experiments imported!`);
+      setPreviewData(null);
+    }
+  };
+
+  const cancelImport = () => {
+    setPreviewData(null);
+    setUploadStatus("");
+  };
+
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(testData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Experiments");
+    XLSX.writeFile(workbook, `experiments_${new Date().toISOString().split('T')[0]}.xlsx`);
+    setUploadStatus("Success: Experiments exported to Excel!");
+  };
+
+  const deleteExperiment = (index) => {
+    if (window.confirm("Are you sure you want to delete this experiment?")) {
+      const newData = testData.filter((_, i) => i !== index);
+      setTestData(newData);
+      setUploadStatus("Experiment deleted successfully.");
+    }
+  };
+
+  const downloadTemplate = () => {
+    const template = [{
+      "Test Launch Date": "2025-01-01",
+      "Test End Date": "2025-01-15",
+      "Test Stage": "Completed",
+      "Summary": "Example Experiment",
+      "Platform": "Platform Name",
+      "Category": "BAU",
+      "LOB(s)": "Multi-LOB",
+      "Country or Countries": "United States",
+      "Page Type(s)": "Homepage",
+      "Page Section(s)": "Hero Banner",
+      "Page Element(s)": "CTA",
+      "Product": "Product Name",
+      "Hypothesis": "Your hypothesis here...",
+      "Optimization Result": "Your results here..."
+    }];
+    
+    const worksheet = XLSX.utils.json_to_sheet(template);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
+    XLSX.writeFile(workbook, "experiment_template.xlsx");
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl shadow-2xl p-8 text-white">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-white/20 backdrop-blur rounded-xl">
+            <Settings size={32} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">Admin Panel</h1>
+            <p className="text-purple-100 mt-1">Manage your experiment data - Upload, edit, and export</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Status Message */}
+      {uploadStatus && (
+        <div className={`p-4 rounded-xl border-2 ${
+          uploadStatus.includes("Error") 
+            ? "bg-red-50 border-red-400 text-red-800"
+            : uploadStatus.includes("Success")
+            ? "bg-green-50 border-green-400 text-green-800"
+            : "bg-blue-50 border-blue-400 text-blue-800"
+        }`}>
+          <p className="font-semibold">{uploadStatus}</p>
+        </div>
+      )}
+
+      {/* Action Cards */}
+      <div className="grid grid-cols-3 gap-6">
+        {/* Upload Excel */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-blue-100 rounded-xl">
+              <Upload size={24} className="text-blue-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Upload Excel</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Import experiments from Excel file. File must match the required format.
+          </p>
+          <label className="block">
+            <div className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 cursor-pointer transition-all text-center">
+              Choose File
+            </div>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </label>
+        </div>
+
+        {/* Download Template */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-purple-100 rounded-xl">
+              <FileSpreadsheet size={24} className="text-purple-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Get Template</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Download Excel template with correct column format for easy data entry.
+          </p>
+          <button
+            onClick={downloadTemplate}
+            className="w-full px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-all"
+          >
+            Download Template
+          </button>
+        </div>
+
+        {/* Export Data */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-green-100 rounded-xl">
+              <Download size={24} className="text-green-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Export Data</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Export current experiments to Excel for backup or sharing.
+          </p>
+          <button
+            onClick={exportToExcel}
+            className="w-full px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-all"
+          >
+            Export to Excel
+          </button>
+        </div>
+      </div>
+
+      {/* Preview Data Table */}
+      {previewData && (
+        <div className="bg-white rounded-2xl shadow-xl border-2 border-blue-400 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-gray-900">Preview Import Data</h3>
+            <div className="flex gap-3">
+              <button
+                onClick={confirmImport}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all flex items-center gap-2"
+              >
+                <CheckCircle2 size={18} />
+                Confirm Import
+              </button>
+              <button
+                onClick={cancelImport}
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition-all flex items-center gap-2"
+              >
+                <XCircle size={18} />
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto max-h-96">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-2 text-left font-semibold">Summary</th>
+                  <th className="px-4 py-2 text-left font-semibold">Stage</th>
+                  <th className="px-4 py-2 text-left font-semibold">Launch Date</th>
+                  <th className="px-4 py-2 text-left font-semibold">Product</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {previewData.slice(0, 10).map((exp, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="px-4 py-2">{exp.Summary}</td>
+                    <td className="px-4 py-2">{exp["Test Stage"]}</td>
+                    <td className="px-4 py-2">{exp["Test Launch Date"]}</td>
+                    <td className="px-4 py-2">{exp.Product}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {previewData.length > 10 && (
+              <p className="text-center text-gray-500 mt-4">
+                ... and {previewData.length - 10} more experiments
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Current Data Management */}
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-2xl font-bold text-gray-900">Current Experiments ({testData.length})</h3>
+        </div>
+
+        <div className="overflow-x-auto max-h-[600px]">
+          <table className="w-full">
+            <thead className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white sticky top-0">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase">#</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase">Summary</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase">Stage</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase">Launch Date</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase">Product</th>
+                <th className="px-4 py-3 text-center text-xs font-bold uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {testData.map((exp, idx) => (
+                <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 text-sm font-semibold text-gray-600">{idx + 1}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900">{exp.Summary}</td>
+                  <td className="px-4 py-3">
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
+                      {exp["Test Stage"]}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{exp["Test Launch Date"]}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900">{exp.Product}</td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => deleteExperiment(idx)}
+                      className="px-3 py-1 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all flex items-center gap-2 mx-auto text-xs"
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Instructions */}
+      <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-6">
+        <h3 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+          <Info size={20} />
+          Excel Format Requirements
+        </h3>
+        <div className="text-sm text-blue-800 space-y-2">
+          <p><strong>Required Columns:</strong></p>
+          <ul className="list-disc list-inside ml-4 space-y-1">
+            <li>Test Launch Date, Test End Date, Test Stage</li>
+            <li>Summary, Platform, Category, LOB(s)</li>
+            <li>Country or Countries, Page Type(s), Page Section(s), Page Element(s)</li>
+            <li>Product, Hypothesis, Optimization Result</li>
+          </ul>
+          <p className="mt-3"><strong>Tips:</strong></p>
+          <ul className="list-disc list-inside ml-4 space-y-1">
+            <li>Use the template for correct format</li>
+            <li>Dates should be in YYYY-MM-DD format</li>
+            <li>Test Stage: Completed, Live, Development, Intake, Proposal, Result Analysis, Result Implementation</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ===== Main App Component =====
 export default function ExperimentationApp() {
   const [activeTab, setActiveTab] = useState("repository");
+  const [testData, setTestData] = useState(INITIAL_TEST_DATA);
 
   const tabs = [
     { id: "repository", label: "Experiment Overview", icon: BookOpen },
     { id: "sample-size", label: "Sample Size", icon: Calculator },
     { id: "monitoring", label: "Experiment Monitoring", icon: BarChart3 },
     { id: "analysis", label: "Results Analysis", icon: LineChart },
+    { id: "admin", label: "Admin", icon: Settings },
   ];
 
   return (
@@ -3105,10 +3036,10 @@ export default function ExperimentationApp() {
       {/* Tab Content */}
       <div className="max-w-7xl mx-auto px-8 py-8">
         {activeTab === "sample-size" && <SampleSizeTab />}
-        {/* {activeTab === "analysis" && <ResultsAnalysisTab />} */}
         {activeTab === "analysis" && <ResultsAnalysisComplete />}
-        {activeTab === "monitoring" && <TestMonitoringTab />}
-        {activeTab === "repository" && <TestRepositoryTab />}
+        {activeTab === "monitoring" && <TestMonitoringTab testData={testData} />}
+        {activeTab === "repository" && <TestRepositoryTab testData={testData} />}
+        {activeTab === "admin" && <AdminTab testData={testData} setTestData={setTestData} />}
       </div>
     </div>
   );
